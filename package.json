@@ -8,7 +8,7 @@
     "dev": "node --env-file .env --watch index"
   },
   "keywords": [],
-  "author": "Santiago Andrés Robledo Garrido, Maximiliano Ordoñez, Mariano Juárez, Naim Federico Paz",
+  "author": "Maximiliano Ordoñez",
   "license": "ISC",
   "type": "module",
   "dependencies": {
