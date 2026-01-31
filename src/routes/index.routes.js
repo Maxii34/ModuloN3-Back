@@ -12,6 +12,6 @@ router.use('/habitaciones', habitacionesRoutes);
 router.use('/usuarios', usuariosRoutes);
 
 // http://localhost:3000/api/reserva
-router.use('/reservas', reservasRoutes);
+router.use('/reserva', reservasRoutes);
 
 export default router;

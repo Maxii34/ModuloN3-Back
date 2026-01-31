@@ -1,42 +1,83 @@
+import Habitacion from "../models/habitaciones.js";
 import Reserva from "../models/reservas.js";
 import mongoose from "mongoose";
 
-
 export const crearReserva = async (req, res) => {
-  try {
-    console.log("REQ.USUARIO:", req.usuario);
+    try {
+        const { 
+            habitacionId, 
+            usuarioId, 
+            fechaEntrada, 
+            fechaSalida,
+            cantidadHuespedes 
+        } = req.body;
 
-    const { habitacion, cantidadHuespedes } = req.body;
+        // Verificar que la habitación existe
+        const habitacion = await Habitacion.findById(habitacionId);
+        if (!habitacion) {
+            return res.status(404).json({ error: "Habitación no encontrada" });
+        }
+        
+        // Verificar capacidad
+        if (cantidadHuespedes > habitacion.capacidad) {
+            return res.status(400).json({ 
+                error: `La habitación solo tiene capacidad para ${habitacion.capacidad} personas` 
+            });
+        }
 
-    if (!habitacion || !req.body.fechaEntrada || !req.body.fechaSalida || !cantidadHuespedes) {
-      return res.status(400).json({ mensaje: "Faltan datos obligatorios" });
+        // Verificar que no haya conflictos con otras reservas
+        const reservasExistentes = await Reserva.find({
+            habitacion: habitacionId,
+            estado: { $in: ['activa', 'confirmada'] }, // Según tu modelo
+            $or: [
+                {
+                    fechaEntrada: { $lte: new Date(fechaEntrada) },
+                    fechaSalida: { $gt: new Date(fechaEntrada) }
+                },
+                {
+                    fechaEntrada: { $lt: new Date(fechaSalida) },
+                    fechaSalida: { $gte: new Date(fechaSalida) }
+                },
+                {
+                    fechaEntrada: { $gte: new Date(fechaEntrada) },
+                    fechaSalida: { $lte: new Date(fechaSalida) }
+                }
+            ]
+        });
+
+        if (reservasExistentes.length > 0) {
+            return res.status(409).json({ 
+                error: "La habitación no está disponible en esas fechas" 
+            });
+        }
+
+        //Crear la reserva
+        const nuevaReserva = new Reserva({
+            habitacion: habitacionId,
+            usuario: usuarioId,
+            fechaEntrada: new Date(fechaEntrada),
+            fechaSalida: new Date(fechaSalida),
+            cantidadHuespedes: cantidadHuespedes,
+            estado: 'activa'
+        });
+
+        await nuevaReserva.save();
+
+        //Agregar la reserva al array de la habitación
+        await Habitacion.findByIdAndUpdate(
+            habitacionId,
+            { $push: { reservas: nuevaReserva._id } }
+        );
+
+        res.status(201).json({
+            mensaje: "Reserva creada exitosamente",
+            reserva: nuevaReserva
+        });
+
+    } catch (error) {
+        console.error('Error al crear reserva:', error);
+        res.status(500).json({ error: error.message });
     }
-
-    // Normalizar fechas a UTC
-    const fechaEntrada = new Date(req.body.fechaEntrada);
-    fechaEntrada.setUTCHours(0, 0, 0, 0);
-
-    const fechaSalida = new Date(req.body.fechaSalida);
-    fechaSalida.setUTCHours(0, 0, 0, 0);
-
-    const nuevaReserva = new Reserva({
-      usuario: new mongoose.Types.ObjectId(req.usuario),
-      habitacion,
-      fechaEntrada,
-      fechaSalida,
-      cantidadHuespedes,
-    });
-
-    await nuevaReserva.save();
-
-    res.status(201).json({
-      mensaje: "Reserva creada correctamente",
-      reserva: nuevaReserva,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error al crear la reserva" });
-  }
 };
 
 
