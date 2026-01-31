@@ -15,13 +15,45 @@ export const crearHabitacion = async (req, res) => {
 
 export const listarHabitaciones = async (req, res) => {
   try {
-    const habitaciones = await Habitacion.find();
-    res.status(200).json(habitaciones);
+    const { fechaEntrada, fechaSalida } = req.query;
+
+    // Si no hay fechas, devolver todas
+    if (!fechaEntrada || !fechaSalida) {
+      const habitaciones = await Habitacion.find();
+      return res.status(200).json(habitaciones);
+    }
+
+    // Normalizar fechas a UTC
+    const entrada = new Date(fechaEntrada);
+    const salida = new Date(fechaSalida);
+    entrada.setUTCHours(0, 0, 0, 0);
+    salida.setUTCHours(0, 0, 0, 0);
+
+    // Importar Reserva
+    const Reserva = (await import("../models/reservas.js")).default;
+
+    // Obtener todas las habitaciones
+    const todasHabitaciones = await Habitacion.find();
+
+    // Filtrar las disponibles
+    const habitacionesDisponibles = [];
+    for (const habitacion of todasHabitaciones) {
+      const reservasSuperpuestas = await Reserva.find({
+        habitacion: habitacion._id,
+        estado: { $in: ["activa", "confirmada"] },
+        fechaEntrada: { $lt: salida },
+        fechaSalida: { $gt: entrada }
+      });
+
+      if (reservasSuperpuestas.length === 0) {
+        habitacionesDisponibles.push(habitacion);
+      }
+    }
+
+    res.status(200).json(habitacionesDisponibles);
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ mensaje: "Ocurrio un error al listar las habitaciones" });
+    res.status(500).json({ mensaje: "Ocurrió un error al listar las habitaciones" });
   }
 };
 

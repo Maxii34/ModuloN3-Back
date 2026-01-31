@@ -28,8 +28,8 @@ const validacionesReserva = [
     .custom((valor) => {
       const fechaEntrada = new Date(valor);
       const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
-      
+      hoy.setUTCHours(0, 0, 0, 0);
+
       if (fechaEntrada < hoy) {
         throw new Error("La fecha de entrada no puede ser anterior a hoy");
       }
@@ -45,13 +45,17 @@ const validacionesReserva = [
     .custom((valor, { req }) => {
       const fechaEntrada = new Date(req.body.fechaEntrada);
       const fechaSalida = new Date(valor);
-      
+
       if (fechaSalida <= fechaEntrada) {
-        throw new Error("La fecha de salida debe ser posterior a la fecha de entrada");
+        throw new Error(
+          "La fecha de salida debe ser posterior a la fecha de entrada",
+        );
       }
 
-      // Valida que la reserva no sea larga 
-      const diasDiferencia = Math.ceil((fechaSalida - fechaEntrada) / (1000 * 60 * 60 * 24));
+      // Valida que la reserva no sea larga
+      const diasDiferencia = Math.ceil(
+        (fechaSalida - fechaEntrada) / (1000 * 60 * 60 * 24),
+      );
       if (diasDiferencia > 30) {
         throw new Error("La reserva no puede ser mayor a 30 días");
       }
@@ -70,7 +74,7 @@ const validacionesReserva = [
       const habitacion = await Habitacion.findById(req.body.habitacion);
       if (habitacion && valor > habitacion.capacidad) {
         throw new Error(
-          `La cantidad de huéspedes (${valor}) excede la capacidad de la habitación (${habitacion.capacidad})`
+          `La cantidad de huéspedes (${valor}) excede la capacidad de la habitación (${habitacion.capacidad})`,
         );
       }
       return true;
@@ -81,32 +85,18 @@ const validacionesReserva = [
     const fechaEntrada = new Date(req.body.fechaEntrada);
     const fechaSalida = new Date(req.body.fechaSalida);
 
-    fechaEntrada.setHours(0, 0, 0, 0);
-    fechaSalida.setHours(23, 59, 59, 999);
+    fechaEntrada.setUTCHours(0, 0, 0, 0);
+    fechaSalida.setUTCHours(0, 0, 0, 0);
 
     // Busca reservas activas que se superpongan con las fechas solicitadas
     const reservasSuperpuestas = await Reserva.find({
       habitacion: new mongoose.Types.ObjectId(habitacionId),
       estado: { $in: ["activa", "confirmada"] },
       $or: [
-        // Caso 1: La reserva existente comienza durante el período solicitado
+        // Detecta si hay superposición de fechas entre reservas
         {
-          fechaEntrada: {
-            $gte: fechaEntrada,
-            $lt: fechaSalida,
-          },
-        },
-        // Caso 2: La reserva existente termina durante el período solicitado
-        {
-          fechaSalida: {
-            $gt: fechaEntrada,
-            $lte: fechaSalida,
-          },
-        },
-        // Caso 3: La reserva existente envuelve completamente el período solicitado
-        {
-          fechaEntrada: { $lte: fechaEntrada },
-          fechaSalida: { $gte: fechaSalida },
+          fechaEntrada: { $lt: fechaSalida },
+          fechaSalida: { $gt: fechaEntrada },
         },
       ],
     });
@@ -114,19 +104,19 @@ const validacionesReserva = [
     // Si es una edición, excluir la reserva actual
     if (req.params?.id) {
       const reservasConflicto = reservasSuperpuestas.filter(
-        (reserva) => reserva._id.toString() !== req.params.id
+        (reserva) => reserva._id.toString() !== req.params.id,
       );
-      
+
       if (reservasConflicto.length > 0) {
         const primeraReserva = reservasConflicto[0];
         throw new Error(
-          `La habitación ya está reservada del ${primeraReserva.fechaEntrada.toLocaleDateString()} al ${primeraReserva.fechaSalida.toLocaleDateString()}`
+          `La habitación ya está reservada del ${primeraReserva.fechaEntrada.toLocaleDateString()} al ${primeraReserva.fechaSalida.toLocaleDateString()}`,
         );
       }
     } else if (reservasSuperpuestas.length > 0) {
       const primeraReserva = reservasSuperpuestas[0];
       throw new Error(
-        `La habitación ya está reservada del ${primeraReserva.fechaEntrada.toLocaleDateString()} al ${primeraReserva.fechaSalida.toLocaleDateString()}`
+        `La habitación ya está reservada del ${primeraReserva.fechaEntrada.toLocaleDateString()} al ${primeraReserva.fechaSalida.toLocaleDateString()}`,
       );
     }
 
