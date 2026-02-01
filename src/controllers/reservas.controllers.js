@@ -87,6 +87,7 @@ export const obtenerMisReservas = async (req, res) => {
   try {
     const reservas = await Reserva.find({
       usuario: new mongoose.Types.ObjectId(req.usuario),
+      estado: "activa"
     })
       .populate("habitacion")
       .sort({ createdAt: -1 });
