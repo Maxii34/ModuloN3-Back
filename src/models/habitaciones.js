@@ -1,73 +1,67 @@
 import mongoose, { Schema } from "mongoose";
 
-const HabitacionSchema = new Schema({
-    numero: { 
-        type: Number, 
-        required: true, 
-        unique: true,
-        min: 1,
-        max: 1000
+const HabitacionSchema = new Schema(
+  {
+    numero: {
+      type: Number,
+      required: true,
+      unique: true,
+      min: 1,
+      max: 1000,
     },
-    tipo: { 
-        type: String, 
-        required: true,
-        enum: ['individual', 'doble', 'matrimonial', 'suite', 'familiar'],
-        lowercase: true 
+    tipo: {
+      type: String,
+      required: true,
+      enum: ["individual", "doble", "matrimonial", "suite", "familiar"],
+      lowercase: true,
     },
-    estado: { 
-        type: String, 
-        required: true,
-        enum: ['disponible', 'ocupada', 'mantenimiento', 'limpieza', 'reservada'],
-        default: 'disponible',
-        lowercase: true 
+    reservas: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Reserva",
+      },
+    ],
+    descripcion: {
+      type: String,
+      minlength: 10,
+      maxlength: 500,
     },
-    descripcion: { 
-        type: String,
-        minlength: 10,
-        maxlength: 500 
+    precio: {
+      type: Number,
+      required: true,
+      min: 0,
     },
-    precio: { 
-        type: Number, 
-        required: true,
-        min: 0 
-    },
-    capacidad: { 
-        type: Number, 
-        required: true,
-        min: 1 
+    capacidad: {
+      type: Number,
+      required: true,
+      min: 1,
     },
     caracteristicas: {
-        type: String,
-        trim: true,
-        minlength: 2,
-        maxlength: 50
+      type: String,
+      trim: true,
+      minlength: 2,
+      maxlength: 50,
     },
     imagen: {
-        type: String,
-        trim: true,
-        match: /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)$/i,
+      type: String,
+      trim: true,
+      match: /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)$/i,
     },
-    piso: { 
-        type: Number, 
-        min: 0,
-        max: 500
+    piso: {
+      type: Number,
+      min: 0,
+      max: 500,
     },
-    metros: { 
-        type: Number, 
-        min: 0,
-        max: 600 
+    metros: {
+      type: Number,
+      min: 0,
+      max: 600,
     },
-    
-    usuario: {
-        type: Schema.Types.ObjectId,
-        ref: 'Usuario',              
-        default: null                
-    }
-
-}, {
-    timestamps: true
-});
-
+  },
+  {
+    timestamps: true,
+  },
+);
 
 const Habitacion = mongoose.model("Habitacion", HabitacionSchema);
 
