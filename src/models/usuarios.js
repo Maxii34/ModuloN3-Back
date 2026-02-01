@@ -42,6 +42,11 @@ const usuarioSchema = new Schema(
       default: "usuario",
     },
     
+    reservas: [{
+      type: Schema.Types.ObjectId,
+      ref: "Reserva"
+    }],
+    
     habitacionAsignada: {
     type: Schema.Types.ObjectId,
     ref: "Habitacion",

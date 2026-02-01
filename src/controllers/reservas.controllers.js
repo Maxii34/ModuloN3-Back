@@ -1,25 +1,26 @@
 import Habitacion from "../models/habitaciones.js";
 import Reserva from "../models/reservas.js";
+import Usuario from "../models/usuarios.js";
 import mongoose from "mongoose";
 
 export const crearReserva = async (req, res) => {
     try {
         const { 
-            habitacionId, 
-            usuarioId, 
+            usuario, 
+            habitacion, 
             fechaEntrada, 
             fechaSalida,
             cantidadHuespedes 
         } = req.body;
 
         // Verificar que la habitación existe
-        const habitacion = await Habitacion.findById(habitacionId);
-        if (!habitacion) {
+        const verificarHabitacion = await Habitacion.findById(habitacion);
+        if (!verificarHabitacion) {
             return res.status(404).json({ error: "Habitación no encontrada" });
         }
         
-        // Verificar capacidad
-        if (cantidadHuespedes > habitacion.capacidad) {
+        // Verificar capacidad de la habitacion
+        if (cantidadHuespedes > verificarHabitacion.capacidad) {
             return res.status(400).json({ 
                 error: `La habitación solo tiene capacidad para ${habitacion.capacidad} personas` 
             });
@@ -27,8 +28,8 @@ export const crearReserva = async (req, res) => {
 
         // Verificar que no haya conflictos con otras reservas
         const reservasExistentes = await Reserva.find({
-            habitacion: habitacionId,
-            estado: { $in: ['activa', 'confirmada'] }, // Según tu modelo
+            habitacion: habitacion,
+            estado: { $in: ['activa', 'confirmada'] }, 
             $or: [
                 {
                     fechaEntrada: { $lte: new Date(fechaEntrada) },
@@ -44,7 +45,7 @@ export const crearReserva = async (req, res) => {
                 }
             ]
         });
-
+        //Si la habitación no está disponible en las fechas indicadas
         if (reservasExistentes.length > 0) {
             return res.status(409).json({ 
                 error: "La habitación no está disponible en esas fechas" 
@@ -53,8 +54,8 @@ export const crearReserva = async (req, res) => {
 
         //Crear la reserva
         const nuevaReserva = new Reserva({
-            habitacion: habitacionId,
-            usuario: usuarioId,
+            usuario: usuario,
+            habitacion: habitacion,
             fechaEntrada: new Date(fechaEntrada),
             fechaSalida: new Date(fechaSalida),
             cantidadHuespedes: cantidadHuespedes,
@@ -63,9 +64,14 @@ export const crearReserva = async (req, res) => {
 
         await nuevaReserva.save();
 
-        //Agregar la reserva al array de la habitación
+        //Agregar la reserva al array de la habitaciónes
         await Habitacion.findByIdAndUpdate(
-            habitacionId,
+            habitacion,
+            { $push: { reservas: nuevaReserva._id } }
+        );
+        //Agregar la reserva al array de usuarios
+        await Usuario.findByIdAndUpdate(
+            usuario,
             { $push: { reservas: nuevaReserva._id } }
         );
 
