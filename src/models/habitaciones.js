@@ -15,6 +15,12 @@ const HabitacionSchema = new Schema(
       enum: ["individual", "doble", "matrimonial", "suite", "familiar"],
       lowercase: true,
     },
+    estado: {
+      type: String,
+      required: true,
+      enum: ["disponible", "ocupada", "reservada", "mantenimiento"],
+      default: "disponible",
+    },
     reservas: [
       {
         type: mongoose.Schema.Types.ObjectId,
